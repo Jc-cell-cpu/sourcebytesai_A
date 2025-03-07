@@ -155,8 +155,21 @@
     "Upload_failed": "アップロードに失敗しました",
     "Failed_to_upload_files": "ファイルのアップロードに失敗しました",
     "Files_cleared": "ファイルがクリアされました",
-    "All_staged_files_have_been_removed": "すべてのステージングされたファイルが削除されました"
+    "All_staged_files_have_been_removed": "すべてのステージングされたファイルが削除されました",
+    "Error": "エラー",
+    "Authentication_details_missing": "認証情報が不足しています",
+    "Failed_to_parse_authentication_details": "認証情報の解析に失敗しました",
+    "Token_or_tenant_id_missing": "トークンまたはテナントIDが不足しています",
+    "File_not_found_or_missing_code_file_path": "ファイルが見つからないか、コードファイルパスが不足しています",
+    "Success": "成功",
+    "File": "ファイル",
+    "synced_successfully": "正常に同期されました",
+    "Sync_Failed": "同期に失敗しました",
+    "downloaded_as_Markdown_successfully": "Markdownとして正常にダウンロードされました",
+    "Download_Failed": "ダウンロードに失敗しました",
+    "Preview_Failed": "プレビューに失敗しました"
 },
+
     "ImportFile": {
     "Upload_Files": "ファイルをアップロード:",
     "Already_Index_websites": "既にインデックスされているウェブサイト:",

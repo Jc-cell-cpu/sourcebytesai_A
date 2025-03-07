@@ -100,8 +100,8 @@ const CodeFileImportPage = () => {
             setSyncStatuses((prev) => new Map(prev).set(fileId, { status: "failure" }))
             setError("No authentication details found")
             toast({
-                title: "Error",
-                description: "Authentication details missing",
+                title: translations?.toast?.Error || "Error",
+                description: translations?.toast?.Authentication_details_missing || "Authentication details missing",
                 variant: "destructive",
             })
             return
@@ -114,8 +114,8 @@ const CodeFileImportPage = () => {
             setSyncStatuses((prev) => new Map(prev).set(fileId, { status: "failure" }))
             setError("Failed to parse auth details")
             toast({
-                title: "Error",
-                description: "Failed to parse authentication details",
+                title: translations?.toast?.Error || "Error",
+                description: translations?.toast?.Failed_to_parse_authentication_details || "Failed to parse authentication details",
                 variant: "destructive",
             })
             return
@@ -128,8 +128,8 @@ const CodeFileImportPage = () => {
             setSyncStatuses((prev) => new Map(prev).set(fileId, { status: "failure" }))
             setError("Token or tenant_id missing")
             toast({
-                title: "Error",
-                description: "Token or tenant_id missing",
+                title: translations?.toast?.Error || "Error",
+                description: translations?.toast?.Token_or_tenant_id_missing || "Token or tenant_id missing",
                 variant: "destructive",
             })
             return
@@ -140,8 +140,8 @@ const CodeFileImportPage = () => {
             setSyncStatuses((prev) => new Map(prev).set(fileId, { status: "failure" }))
             setError("File not found or missing code_file path")
             toast({
-                title: "Error",
-                description: "File not found or missing code_file path",
+                title: translations?.toast?.Error || "Error",
+                description: translations?.toast?.File_not_found_or_missing_code_file_path || "File not found or missing code_file path",
                 variant: "destructive",
             })
             return
@@ -170,8 +170,9 @@ const CodeFileImportPage = () => {
                 )
             )
             toast({
-                title: "Success",
-                description: `File ${fileToSync.name} synced successfully`,
+                title: translations?.toast?.Success || "Success",
+                description: translations?.toast?.File || "File" + `${fileToSync.name}` + translations?.toast?.synced_successfully || "synced successfully",
+                variant: "success"
             })
         } else {
             const statusCode = response.error.includes("status 400") ? 400 :
@@ -184,7 +185,7 @@ const CodeFileImportPage = () => {
             )
             setError(response.error)
             toast({
-                title: "Sync Failed",
+                title: translations?.toast?.Sync_Failed || "Sync Failed",
                 description: response.error,
                 variant: "destructive",
             })
@@ -199,8 +200,8 @@ const CodeFileImportPage = () => {
         const authDetailsString = sessionStorage.getItem("authDetails")
         if (!authDetailsString) {
             toast({
-                title: "Error",
-                description: "Authentication details missing",
+                title: translations?.toast?.Error || "Error",
+                description: translations?.toast?.Authentication_details_missing || "Authentication details missing",
                 variant: "destructive",
             })
             return
@@ -211,8 +212,8 @@ const CodeFileImportPage = () => {
             authDetails = JSON.parse(authDetailsString)
         } catch (e) {
             toast({
-                title: "Error",
-                description: "Failed to parse authentication details",
+                title: translations?.toast?.Error || "Error",
+                description: translations?.toast?.Failed_to_parse_authentication_details || "Failed to parse authentication details",
                 variant: "destructive",
             })
             return
@@ -223,8 +224,8 @@ const CodeFileImportPage = () => {
 
         if (!token || !tenant_id) {
             toast({
-                title: "Error",
-                description: "Token or tenant_id missing",
+                title: translations?.toast?.Error || "Error",
+                description: translations?.toast?.Token_or_tenant_id_missing || "Token or tenant_id missing",
                 variant: "destructive",
             })
             return
@@ -247,12 +248,13 @@ const CodeFileImportPage = () => {
             window.URL.revokeObjectURL(url)
 
             toast({
-                title: "Success",
-                description: `File ${fileName} downloaded as Markdown successfully`,
+                title: translations?.toast?.Success || "Success",
+                description: translations?.toast?.File || "File" + `${fileName}` + translations?.toast?.downloaded_as_Markdown_successfully || "downloaded as Markdown successfully",
+                variant: "success"
             })
         } else {
             toast({
-                title: "Download Failed",
+                title: translations?.toast?.Download_Failed || "Download Failed",
                 description: response.error,
                 variant: "destructive",
             })
@@ -263,8 +265,8 @@ const CodeFileImportPage = () => {
         const authDetailsString = sessionStorage.getItem("authDetails")
         if (!authDetailsString) {
             toast({
-                title: "Error",
-                description: "Authentication details missing",
+                title: translations?.toast?.Error || "Error",
+                description: translations?.toast?.Authentication_details_missing || "Authentication details missing",
                 variant: "destructive",
             })
             return
@@ -275,8 +277,8 @@ const CodeFileImportPage = () => {
             authDetails = JSON.parse(authDetailsString)
         } catch (e) {
             toast({
-                title: "Error",
-                description: "Failed to parse authentication details",
+                title: translations?.toast?.Error || "Error",
+                description: translations?.toast?.Failed_to_parse_authentication_details || "Failed to parse authentication details",
                 variant: "destructive",
             })
             return
@@ -287,8 +289,8 @@ const CodeFileImportPage = () => {
 
         if (!token || !tenant_id) {
             toast({
-                title: "Error",
-                description: "Token or tenant_id missing",
+                title: translations?.toast?.Error || "Error",
+                description: translations?.toast?.Token_or_tenant_id_missing || "Token or tenant_id missing",
                 variant: "destructive",
             })
             return
@@ -302,7 +304,7 @@ const CodeFileImportPage = () => {
             setShowPreviewModal(true)
         } else {
             toast({
-                title: "Preview Failed",
+                title: translations?.toast?.Preview_Failed || "Preview Failed",
                 description: response.error,
                 variant: "destructive",
             })
