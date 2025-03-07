@@ -31,13 +31,13 @@ const CodeFileImportPage = () => {
     const [fileToDelete, setFileToDelete] = useState<FileData | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [showPreviewModal, setShowPreviewModal] = useState(false) // New state for preview modal
+    const [previewContent, setPreviewContent] = useState<string>("") // New state for preview HTML
 
     const allowedFileTypes = [".txt", ".pdf", ".doc", ".docx"]
     const maxFileSize = 10 * 1024 * 1024 // 10MB
     const { translations } = useLanguage()
     const { toast } = useToast()
-
-    // Initialize Turndown
     const turndownService = new TurndownService()
 
     const fetchCodeFiles = async () => {
@@ -172,7 +172,6 @@ const CodeFileImportPage = () => {
             toast({
                 title: "Success",
                 description: `File ${fileToSync.name} synced successfully`,
-                variant: "success"
             })
         } else {
             const statusCode = response.error.includes("status 400") ? 400 :
@@ -235,14 +234,13 @@ const CodeFileImportPage = () => {
         console.log("DownloadCodeFile API Response:", response)
 
         if (response.success) {
-            const { html_content, filename } = response.data
-            // Convert HTML to Markdown
+            const { html_content } = response.data
             const markdownContent = turndownService.turndown(html_content)
             const blob = new Blob([markdownContent], { type: "text/markdown" })
             const url = window.URL.createObjectURL(blob)
             const link = document.createElement("a")
             link.href = url
-            link.setAttribute("download", `${fileName.split(".")[0]}.md`) // Use original name with .md
+            link.setAttribute("download", `${fileName.split(".")[0]}.md`)
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
@@ -251,7 +249,6 @@ const CodeFileImportPage = () => {
             toast({
                 title: "Success",
                 description: `File ${fileName} downloaded as Markdown successfully`,
-                variant: "success"
             })
         } else {
             toast({
@@ -260,6 +257,61 @@ const CodeFileImportPage = () => {
                 variant: "destructive",
             })
         }
+    }
+
+    const handlePreview = async (fileId: string, fileName: string) => {
+        const authDetailsString = sessionStorage.getItem("authDetails")
+        if (!authDetailsString) {
+            toast({
+                title: "Error",
+                description: "Authentication details missing",
+                variant: "destructive",
+            })
+            return
+        }
+
+        let authDetails
+        try {
+            authDetails = JSON.parse(authDetailsString)
+        } catch (e) {
+            toast({
+                title: "Error",
+                description: "Failed to parse authentication details",
+                variant: "destructive",
+            })
+            return
+        }
+
+        const token = authDetails.data?.token
+        const tenant_id = authDetails.data?.tenant_id
+
+        if (!token || !tenant_id) {
+            toast({
+                title: "Error",
+                description: "Token or tenant_id missing",
+                variant: "destructive",
+            })
+            return
+        }
+
+        const response = await downloadCodeFile(token, tenant_id, fileId)
+        console.log("PreviewCodeFile API Response:", response)
+
+        if (response.success) {
+            setPreviewContent(response.data.html_content)
+            setShowPreviewModal(true)
+        } else {
+            toast({
+                title: "Preview Failed",
+                description: response.error,
+                variant: "destructive",
+            })
+        }
+    }
+
+    const closePreviewModal = () => {
+        setShowPreviewModal(false)
+        setPreviewContent("")
     }
 
     const confirmDelete = () => {
@@ -352,7 +404,7 @@ const CodeFileImportPage = () => {
         {
             key: "view",
             icon: <img src="/Eye.svg" alt="View file" className="w-5 h-5" />,
-            onClick: (row: FileData) => console.log(`Viewing ${row.name}`),
+            onClick: (row: FileData) => handlePreview(row.id, row.name), // Updated to trigger preview
             condition: (row: FileData) => !row.isStaged,
         },
         {
@@ -428,6 +480,22 @@ const CodeFileImportPage = () => {
                                 </Button>
                                 <Button variant="outline" onClick={cancelDelete} className="text-gray-700">
                                     Cancel
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {showPreviewModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+                        <div className="bg-white p-6 rounded-lg shadow-lg max-w-3xl w-full max-h-[80vh] overflow-auto">
+                            <h3 className="text-lg font-semibold mb-4">Preview Document</h3>
+                            <div
+                                className="border p-4 rounded bg-gray-50"
+                                dangerouslySetInnerHTML={{ __html: previewContent }}
+                            />
+                            <div className="flex justify-end mt-4">
+                                <Button variant="outline" onClick={closePreviewModal} className="text-gray-700">
+                                    Close
                                 </Button>
                             </div>
                         </div>
