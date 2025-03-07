@@ -165,7 +165,9 @@
             "Are_you_sure_you_want_to_delete":"Are you sure you want to delete",
             "This_action_cannot_be_undone":"This action cannot be undone",
             "Continue":"Continue",
-            "Cancel":"Cancel"
+            "Cancel":"Cancel",
+            "Preview_Document":"Preview Document",
+            "Close":"Close"
     },
     "web":{
         "Base_URL":"Base URL",

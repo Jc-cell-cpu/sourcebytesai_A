@@ -164,7 +164,9 @@
     "Are_you_sure_you_want_to_delete": "本当に削除してもよろしいですか",
     "This_action_cannot_be_undone": "この操作は元に戻せません",
     "Continue": "続行",
-    "Cancel": "キャンセル"
+    "Cancel": "キャンセル",
+    "Preview_Document": "ドキュメントをプレビュー",
+    "Close": "閉じる"
 },
 "web": {
     "Base_URL": "ベースURL",

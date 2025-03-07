@@ -469,17 +469,17 @@ const CodeFileImportPage = () => {
                 {showDeleteModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
                         <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-                            <h3 className="text-lg font-semibold mb-4">Want to Delete Code File?</h3>
+                            <h3 className="text-lg font-semibold mb-4">{translations?.ImportFile?.Want_to_Delete_Code_File || "Want to Delete Code File?"}</h3>
                             <p className="mb-6">
-                                Are you sure you want to delete <span className="font-bold">{fileToDelete?.name}</span>? This action cannot
-                                be undone
+                                {translations?.ImportFile?.Are_you_sure_you_want_to_delete || "Are you sure you want to delete"} <span className="font-bold">{fileToDelete?.name}</span>? {translations?.ImportFile?.This_action_cannot_be_undone ||
+                                    "This action cannot be undone"}
                             </p>
                             <div className="flex justify-end space-x-4">
                                 <Button variant="destructive" onClick={confirmDelete} className="bg-orange-500 hover:bg-orange-600">
-                                    Continue
+                                    {translations?.ImportFile?.Continue || "Continue"}
                                 </Button>
                                 <Button variant="outline" onClick={cancelDelete} className="text-gray-700">
-                                    Cancel
+                                    {translations?.ImportFile?.Cancel || "Cancel"}
                                 </Button>
                             </div>
                         </div>
@@ -488,14 +488,14 @@ const CodeFileImportPage = () => {
                 {showPreviewModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
                         <div className="bg-white p-6 rounded-lg shadow-lg max-w-3xl w-full max-h-[80vh] overflow-auto">
-                            <h3 className="text-lg font-semibold mb-4">Preview Document</h3>
+                            <h3 className="text-lg font-semibold mb-4">{translations?.ImportFile?.Preview_Document || "Preview Document"}</h3>
                             <div
                                 className="border p-4 rounded bg-gray-50"
                                 dangerouslySetInnerHTML={{ __html: previewContent }}
                             />
                             <div className="flex justify-end mt-4">
                                 <Button variant="outline" onClick={closePreviewModal} className="text-gray-700">
-                                    Close
+                                    {translations?.ImportFile?.Close || "Close"}
                                 </Button>
                             </div>
                         </div>
