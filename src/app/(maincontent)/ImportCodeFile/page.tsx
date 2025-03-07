@@ -6,9 +6,10 @@ import { Download, Trash2, RefreshCw, File, Search } from "lucide-react"
 import ReusableTable from "@/components/ReusableTable"
 import CodeFileUploaderPage from "@/components/CodeFileUploaderPage"
 import { useLanguage } from "@/context/LanguageContext"
-import { getCodeFiles, syncCodeFile, downloadCodeFile } from "@/components/apicalls/importcodefiles" // Import downloadCodeFile
+import { getCodeFiles, syncCodeFile, downloadCodeFile } from "@/components/apicalls/importcodefiles"
 import { useToast } from "@/hooks/use-toast"
 import Loader from "@/components/Loader"
+import TurndownService from "turndown"
 
 interface FileData {
     id: string
@@ -35,6 +36,9 @@ const CodeFileImportPage = () => {
     const maxFileSize = 10 * 1024 * 1024 // 10MB
     const { translations } = useLanguage()
     const { toast } = useToast()
+
+    // Initialize Turndown
+    const turndownService = new TurndownService()
 
     const fetchCodeFiles = async () => {
         setLoading(true)
@@ -168,6 +172,7 @@ const CodeFileImportPage = () => {
             toast({
                 title: "Success",
                 description: `File ${fileToSync.name} synced successfully`,
+                variant: "success"
             })
         } else {
             const statusCode = response.error.includes("status 400") ? 400 :
@@ -230,11 +235,14 @@ const CodeFileImportPage = () => {
         console.log("DownloadCodeFile API Response:", response)
 
         if (response.success) {
-            const { blob, filename } = response.data
+            const { html_content, filename } = response.data
+            // Convert HTML to Markdown
+            const markdownContent = turndownService.turndown(html_content)
+            const blob = new Blob([markdownContent], { type: "text/markdown" })
             const url = window.URL.createObjectURL(blob)
             const link = document.createElement("a")
             link.href = url
-            link.setAttribute("download", filename)
+            link.setAttribute("download", `${fileName.split(".")[0]}.md`) // Use original name with .md
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
@@ -242,7 +250,8 @@ const CodeFileImportPage = () => {
 
             toast({
                 title: "Success",
-                description: `File ${fileName} downloaded successfully`,
+                description: `File ${fileName} downloaded as Markdown successfully`,
+                variant: "success"
             })
         } else {
             toast({
@@ -337,7 +346,7 @@ const CodeFileImportPage = () => {
         {
             key: "download",
             icon: <Download className="h-4 w-4" />,
-            onClick: (row: FileData) => handleDownload(row.id, row.name), // Updated to call handleDownload
+            onClick: (row: FileData) => handleDownload(row.id, row.name),
             condition: (row: FileData) => !row.isStaged,
         },
         {

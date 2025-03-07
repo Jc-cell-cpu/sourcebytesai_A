@@ -184,17 +184,20 @@ export async function downloadCodeFile(
       },
     });
 
+    const text = await response.text();
+    console.log("DownloadCodeFile Raw Response:", text);
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (jsonError) {
+      return {
+        success: false,
+        error: `Invalid JSON response: ${text.substring(0, 100)}...`,
+      };
+    }
+
     if (!response.ok) {
-      const text = await response.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (jsonError) {
-        return {
-          success: false,
-          error: `Invalid response: ${text.substring(0, 100)}...`,
-        };
-      }
       return {
         success: false,
         error:
@@ -203,24 +206,17 @@ export async function downloadCodeFile(
       };
     }
 
-    // Get the blob data for download
-    const blob = await response.blob();
-
-    // Extract filename from content-disposition header if available
-    const contentDisposition = response.headers.get("Content-Disposition");
-    let filename = `downloaded_file_${id}`;
-    if (contentDisposition && contentDisposition.includes("filename=")) {
-      filename = contentDisposition
-        .split("filename=")[1]
-        .replace(/"/g, "")
-        .trim();
-    }
+    const htmlContent = data.data.html_content
+      .replace(/^"|"$/g, "") // Remove surrounding quotes
+      .replace(/\\n/g, "\n") // Convert \n to actual newlines
+      .replace(/\\t/g, "\t") // Convert \t to tabs if any
+      .replace(/\\"/g, '"'); // Convert \" to "
 
     return {
       success: true,
       data: {
-        blob,
-        filename,
+        html_content: htmlContent,
+        filename: `documentation_${id}.md`, // Changed to .md
       },
     };
   } catch (error) {
