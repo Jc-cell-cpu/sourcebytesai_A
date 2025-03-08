@@ -3,9 +3,10 @@
 import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Trash2, RefreshCw, Search } from "lucide-react"
+import { Trash2, RefreshCw, Search, Info } from "lucide-react"
 import ReusableTable from "@/components/ReusableTable"
 import { useLanguage } from "@/context/LanguageContext"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip" // Assuming you have a tooltip component
 
 interface FileData {
     id: string
@@ -22,17 +23,14 @@ const importfromGdrivepage = () => {
         { id: "4", name: "https://apps.apple.com/in/app/niai/id159019033", status: "Ready", lastModified: "03:00:54 11-03-2024" },
     ]);
 
-    // Track sync status for each file
     const [syncStatuses, setSyncStatuses] = useState<
         Map<string, { status: "idle" | "pending" | "success" | "failure"; lastSync?: string }>
     >(new Map(data.map((file) => [file.id, { status: "idle" }])))
 
-    // Modal state for delete confirmation
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [fileToDelete, setFileToDelete] = useState<FileData | null>(null)
     const { translations } = useLanguage();
 
-    // Simulated async API call for sync
     const syncFile = async (fileId: string) => {
         setSyncStatuses((prev) => new Map(prev).set(fileId, { status: "pending" }))
         try {
@@ -48,11 +46,10 @@ const importfromGdrivepage = () => {
         }
     }
 
-    // Handle delete confirmation
     const confirmDelete = () => {
-        if (fileToDelete && data) { // Add null check for data
+        if (fileToDelete && data) {
             console.log(`Deleting ${fileToDelete.name}`)
-            setData((prev) => prev.filter((file) => file.id !== fileToDelete.id) || []) // Ensure prev is not undefined
+            setData((prev) => prev.filter((file) => file.id !== fileToDelete.id) || [])
             setSyncStatuses((prev) => {
                 const newMap = new Map(prev)
                 newMap.delete(fileToDelete.id)
@@ -63,7 +60,6 @@ const importfromGdrivepage = () => {
         }
     }
 
-    // Cancel delete
     const cancelDelete = () => {
         setShowDeleteModal(false)
         setFileToDelete(null)
@@ -112,7 +108,6 @@ const importfromGdrivepage = () => {
                 )
             },
         },
-        // { key: "action", label: "Action", sortable: false, render: () => null }, // Placeholder for Action column
     ]
 
     const icons = [
@@ -134,7 +129,25 @@ const importfromGdrivepage = () => {
         <div className="p-6 mx-auto">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">{translations?.Gdrive?.Add_Google_Drive_Link}</h2>
             <div className="bg-gray-100 p-6 rounded-lg mb-6 max-w-xl shadow-md">
-                <h3 className="text-lg font-semibold mb-4 text-gray-700">{translations?.Gdrive?.Add_Link}</h3>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold text-gray-700">{translations?.Gdrive?.Add_Link}</h3>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-6 w-6 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                >
+                                    <Info className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Please make confirm you given access to this link</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
                 <div className="mb-4">
                     <input
                         type="text"
@@ -147,11 +160,9 @@ const importfromGdrivepage = () => {
                     onClick={() => console.log("Connect clicked")}
                 >
                     {translations?.web?.Connect}
-                    {/* <img src="/document-upload.svg" alt="Connect icon" className="h-5 w-5" /> */}
                 </Button>
             </div>
 
-            {/* <h2 className="text-2xl font-bold mb-6 text-gray-800">Already Index websites:</h2> */}
             <div className="bg-white rounded-lg shadow-sm">
                 <div className="flex justify-between py-4 items-center px-6">
                     <h2 className="text-lg font-semibold">{translations?.web?.Already_Index_websites}</h2>
