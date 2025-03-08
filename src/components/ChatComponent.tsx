@@ -29,6 +29,7 @@ export const ChatComponent = () => {
 
     const [isListening, setIsListening] = useState(false);
     const [transcript, setTranscript] = useState("");
+    const [isHistoryOpen, setIsHistoryOpen] = useState(true); // Add state
 
     useEffect(() => {
         if (!("webkitSpeechRecognition" in window)) {
@@ -388,7 +389,12 @@ export const ChatComponent = () => {
                             </div>
                         </div>
                     </main>
-                    <ChatHistory historyData={newChat} onHistorySelect={setSelectedHistory} />
+                    <ChatHistory
+                        historyData={newChat}
+                        onHistorySelect={setSelectedHistory}
+                        isOpen={isHistoryOpen}
+                        setIsOpen={setIsHistoryOpen}
+                    />
                 </div>
             </div>
         </div>
