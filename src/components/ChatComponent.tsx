@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { CiMicrophoneOn } from "react-icons/ci";
 import { ChatHistory } from "@/components/History";
 import { FiCopy } from "react-icons/fi";
@@ -12,6 +12,18 @@ import { CheckCircle, XCircle } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { PiRecordFill } from "react-icons/pi";
 import TypingIndicator from "./typing-indicator";
+
+// Dummy file data for suggestions
+const dummyFiles = [
+    { id: 1, name: "Paracetamol.zip" },
+    { id: 2, name: "Paroxetine.zip" },
+    { id: 3, name: "Paroxetine CR (Controlled Release).zip" },
+    { id: 4, name: "Paromomycin.zip" },
+    { id: 5, name: "Paricalcitol.zip" },
+    { id: 6, name: "Paroxetine Mesylate.zip" },
+    { id: 7, name: "Paroxetine Hydrochloride.zip" },
+    { id: 8, name: "Paroxetine Mesylate Hydrochloride.zip" },
+];
 
 export const ChatComponent = () => {
     const [messages, setMessages] = useState<any[]>([]);
@@ -26,10 +38,55 @@ export const ChatComponent = () => {
     const { translations } = useLanguage();
     const [isSending, setIsSending] = useState<boolean>(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
-
     const [isListening, setIsListening] = useState(false);
     const [transcript, setTranscript] = useState("");
-    const [isHistoryOpen, setIsHistoryOpen] = useState(true); // Add state
+    const [isHistoryOpen, setIsHistoryOpen] = useState(true);
+    const [suggestions, setSuggestions] = useState<typeof dummyFiles>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Debounced search function
+    const debouncedSearch = useCallback((searchTerm: string) => {
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+
+        debounceTimeoutRef.current = setTimeout(() => {
+            if (searchTerm.trim() === "") {
+                setSuggestions([]);
+                return;
+            }
+
+            const filteredFiles = dummyFiles.filter(file =>
+                file.name.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            setSuggestions(filteredFiles);
+        }, 500); // 300ms debounce delay
+    }, []);
+
+    // Handle input change with suggestion logic
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        setInputText(value);
+
+        if (value.startsWith("/") && value.length > 1) {
+            const searchTerm = value.slice(1);
+            setShowSuggestions(true);
+            debouncedSearch(searchTerm);
+        } else {
+            setShowSuggestions(false);
+            setSuggestions([]);
+        }
+    };
+
+    // Handle suggestion selection
+    const handleSuggestionSelect = (fileName: string) => {
+        const blob = new Blob([`Content of ${fileName}`], { type: "text/plain" });
+        setAttachedFiles((prev) => [...prev, { blob, filename: fileName }]);
+        setInputText("");
+        setShowSuggestions(false);
+        setSuggestions([]);
+    };
 
     useEffect(() => {
         if (!("webkitSpeechRecognition" in window)) {
@@ -216,6 +273,9 @@ export const ChatComponent = () => {
         return () => {
             speechSynthesis.cancel();
             setPlayingMessageId(null);
+            if (debounceTimeoutRef.current) {
+                clearTimeout(debounceTimeoutRef.current);
+            }
         };
     }, [selectedHistory]);
 
@@ -345,8 +405,8 @@ export const ChatComponent = () => {
                                 </div>
                             )}
 
-                            {/* Input Area */}
-                            <div className="flex items-center gap-2">
+                            {/* Input Area with Suggestions */}
+                            <div className="relative flex items-center gap-2">
                                 <button
                                     className="p-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 transition-colors shrink-0"
                                     onClick={() => setIsListening((prev) => !prev)}
@@ -357,29 +417,47 @@ export const ChatComponent = () => {
                                         <CiMicrophoneOn className="w-6 h-6 text-zinc-700" />
                                     )}
                                 </button>
-                                <textarea
-                                    readOnly={isGenerating}
-                                    value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    onPaste={handlePaste}
-                                    placeholder={translations?.admin?.chat_input_placeholder}
-                                    className="flex-1 p-3 rounded-lg border border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm resize-none overflow-hidden"
-                                    rows={1}
-                                    onInput={(e) => {
-                                        const target = e.target as HTMLTextAreaElement;
-                                        target.style.height = "auto";
-                                        target.style.maxHeight = "300px";
-                                        void target.offsetHeight;
-                                        target.style.height = `${target.scrollHeight}px`;
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter" && !e.shiftKey && !isGenerating) {
-                                            e.preventDefault();
-                                            handleSendMessage();
-                                        }
-                                    }}
-                                    disabled={isGenerating}
-                                />
+                                <div className="flex-1 relative">
+                                    <textarea
+                                        readOnly={isGenerating}
+                                        value={inputText}
+                                        onChange={handleInputChange}
+                                        onPaste={handlePaste}
+                                        placeholder={translations?.admin?.chat_input_placeholder}
+                                        className="flex-1 p-3 rounded-lg border border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm resize-none overflow-hidden w-full"
+                                        rows={1}
+                                        onInput={(e) => {
+                                            const target = e.target as HTMLTextAreaElement;
+                                            target.style.height = "auto";
+                                            target.style.maxHeight = "300px";
+                                            void target.offsetHeight;
+                                            target.style.height = `${target.scrollHeight}px`;
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" && !e.shiftKey && !isGenerating) {
+                                                e.preventDefault();
+                                                handleSendMessage();
+                                            } else if (e.key === "ArrowDown" && showSuggestions) {
+                                                e.preventDefault();
+                                                // Add keyboard navigation logic if needed
+                                            }
+                                        }}
+                                        disabled={isGenerating}
+                                    />
+                                    {showSuggestions && suggestions.length > 0 && (
+                                        <div className="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto z-10">
+                                            {suggestions.map((file) => (
+                                                <div
+                                                    key={file.id}
+                                                    className="p-2 hover:bg-blue-100 cursor-pointer text-sm"
+                                                    onClick={() => handleSuggestionSelect(file.name)}
+                                                >
+                                                    {file.name}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                                 <button
                                     onClick={handleSendMessage}
                                     className={`bg-orange-500 hover:bg-orange-600 text-white rounded-full p-2 transition-colors shrink-0 flex items-center justify-center w-10 h-10`}
