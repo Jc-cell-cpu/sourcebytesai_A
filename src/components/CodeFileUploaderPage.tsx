@@ -31,7 +31,7 @@ const CodeFileUploaderPage: React.FC<CodeFileUploaderPageProps> = ({ onUploadSuc
         ".asm", ".mjs", ".coffee", ".erl", ".ex", ".lua", ".f90", ".for",
         ".tcl", ".pas", ".ada", ".vhd", ".verilog", ".pug", ".haml"
     ];
-    const maxFileSize = 5 * 1024 * 1024 // 5MB for code files
+    const maxFileSize = 10 * 1024 * 1024 // 10MB for code files
     const { translations } = useLanguage()
     const { toast } = useToast()
 
