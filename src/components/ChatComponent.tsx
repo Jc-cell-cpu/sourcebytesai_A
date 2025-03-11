@@ -8,12 +8,13 @@ import Image from "next/image";
 import { FaPlay, FaStop } from "react-icons/fa";
 import { getChatHistory, sendChat } from "./apicalls/chat";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle } from "lucide-react";
+import { X } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { PiRecordFill } from "react-icons/pi";
 import TypingIndicator from "./typing-indicator";
+import CodeEditor from "./code-editor";
+import hljs from "highlight.js"; // Import highlight.js
 
-// Dummy file data for suggestions
 const dummyFiles = [
     { id: 1, name: "Paracetamol.zip" },
     { id: 2, name: "Paroxetine.zip" },
@@ -24,6 +25,74 @@ const dummyFiles = [
     { id: 7, name: "Paroxetine Hydrochloride.zip" },
     { id: 8, name: "Paroxetine Mesylate Hydrochloride.zip" },
 ];
+
+// Language detection using highlight.js
+const detectLanguage = (text: string): { extension: string; mimeType: string } => {
+    const result = hljs.highlightAuto(text);
+    const lang = result.language || "markdown"; // Default to markdown if no language detected
+
+    const languageMap: Record<string, { extension: string; mimeType: string }> = {
+        javascript: { extension: "js", mimeType: "text/javascript" },
+        typescript: { extension: "ts", mimeType: "text/typescript" },
+        jsx: { extension: "jsx", mimeType: "text/jsx" },
+        tsx: { extension: "tsx", mimeType: "text/tsx" },
+        python: { extension: "py", mimeType: "text/x-python" },
+        json: { extension: "json", mimeType: "application/json" },
+        html: { extension: "html", mimeType: "text/html" },
+        css: { extension: "css", mimeType: "text/css" },
+        sass: { extension: "sass", mimeType: "text/x-sass" },
+        scss: { extension: "scss", mimeType: "text/x-scss" },
+        less: { extension: "less", mimeType: "text/x-less" },
+        markdown: { extension: "md", mimeType: "text/markdown" },
+        xml: { extension: "xml", mimeType: "text/xml" },
+        yaml: { extension: "yaml", mimeType: "text/yaml" },
+        java: { extension: "java", mimeType: "text/x-java-source" },
+        c: { extension: "c", mimeType: "text/x-csrc" },
+        cpp: { extension: "cpp", mimeType: "text/x-c++src" },
+        csharp: { extension: "cs", mimeType: "text/x-csharp" },
+        php: { extension: "php", mimeType: "application/x-httpd-php" },
+        ruby: { extension: "rb", mimeType: "text/x-ruby" },
+        swift: { extension: "swift", mimeType: "text/x-swift" },
+        kotlin: { extension: "kt", mimeType: "text/x-kotlin" },
+        go: { extension: "go", mimeType: "text/x-go" },
+        rust: { extension: "rs", mimeType: "text/x-rust" },
+        r: { extension: "r", mimeType: "text/x-rsrc" },
+        shell: { extension: "sh", mimeType: "application/x-sh" },
+        sql: { extension: "sql", mimeType: "application/sql" },
+        perl: { extension: "pl", mimeType: "text/x-perl" },
+        lua: { extension: "lua", mimeType: "text/x-lua" },
+        dart: { extension: "dart", mimeType: "text/x-dart" },
+        scala: { extension: "scala", mimeType: "text/x-scala" },
+        objectivec: { extension: "m", mimeType: "text/x-objectivec" },
+        objectivecpp: { extension: "mm", mimeType: "text/x-objectivec++" },
+        latex: { extension: "tex", mimeType: "application/x-tex" },
+        vb: { extension: "vb", mimeType: "text/x-vb" },
+        powershell: { extension: "ps1", mimeType: "application/x-powershell" },
+        dockerfile: { extension: "dockerfile", mimeType: "text/x-dockerfile" },
+        graphql: { extension: "graphql", mimeType: "application/graphql" },
+        ini: { extension: "ini", mimeType: "text/plain" },
+        toml: { extension: "toml", mimeType: "text/plain" },
+        properties: { extension: "properties", mimeType: "text/plain" },
+        makefile: { extension: "mk", mimeType: "text/x-makefile" },
+        asm: { extension: "asm", mimeType: "text/x-assembly" },
+        matlab: { extension: "m", mimeType: "text/x-matlab" },
+        hcl: { extension: "hcl", mimeType: "text/x-hcl" },
+        vue: { extension: "vue", mimeType: "text/x-vue" },
+        svelte: { extension: "svelte", mimeType: "text/x-svelte" },
+        elm: { extension: "elm", mimeType: "text/x-elm" },
+        clojure: { extension: "clj", mimeType: "text/x-clojure" },
+        fsharp: { extension: "fs", mimeType: "text/x-fsharp" },
+        pascal: { extension: "pas", mimeType: "text/x-pascal" },
+        julia: { extension: "jl", mimeType: "text/x-julia" },
+        wasm: { extension: "wasm", mimeType: "application/wasm" }
+    };
+
+
+
+    return (
+        languageMap[lang] || { extension: "md", mimeType: "text/markdown" } // Fallback to Markdown
+    );
+};
 
 export const ChatComponent = () => {
     const [messages, setMessages] = useState<any[]>([]);
@@ -45,30 +114,30 @@ export const ChatComponent = () => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Debounced search function
+    // State for preview/edit modal
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<{ blob: Blob; filename: string } | null>(null);
+    const [editedContent, setEditedContent] = useState("");
+
     const debouncedSearch = useCallback((searchTerm: string) => {
         if (debounceTimeoutRef.current) {
             clearTimeout(debounceTimeoutRef.current);
         }
-
         debounceTimeoutRef.current = setTimeout(() => {
             if (searchTerm.trim() === "") {
                 setSuggestions([]);
                 return;
             }
-
-            const filteredFiles = dummyFiles.filter(file =>
+            const filteredFiles = dummyFiles.filter((file) =>
                 file.name.toLowerCase().includes(searchTerm.toLowerCase())
             );
             setSuggestions(filteredFiles);
-        }, 500); // 300ms debounce delay
+        }, 500);
     }, []);
 
-    // Handle input change with suggestion logic
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
         setInputText(value);
-
         if (value.startsWith("/") && value.length > 1) {
             const searchTerm = value.slice(1);
             setShowSuggestions(true);
@@ -79,7 +148,6 @@ export const ChatComponent = () => {
         }
     };
 
-    // Handle suggestion selection
     const handleSuggestionSelect = (fileName: string) => {
         const blob = new Blob([`Content of ${fileName}`], { type: "text/plain" });
         setAttachedFiles((prev) => [...prev, { blob, filename: fileName }]);
@@ -88,20 +156,45 @@ export const ChatComponent = () => {
         setSuggestions([]);
     };
 
+    const handleFilePreview = async (file: { blob: Blob; filename: string }) => {
+        try {
+            const text = await file.blob.text();
+            setSelectedFile(file);
+            setEditedContent(text);
+            setIsPreviewOpen(true);
+        } catch (error) {
+            console.error("Error reading file content:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Failed to read file content",
+                duration: 5000,
+            });
+        }
+    };
+
+    const handleSaveEdit = () => {
+        if (selectedFile) {
+            const { mimeType } = detectLanguage(editedContent); // Re-detect language on save
+            const newBlob = new Blob([editedContent], { type: mimeType });
+            setAttachedFiles((prev) =>
+                prev.map((f) => (f.filename === selectedFile.filename ? { ...f, blob: newBlob } : f))
+            );
+            setIsPreviewOpen(false);
+        }
+    };
+
     useEffect(() => {
         if (!("webkitSpeechRecognition" in window)) {
             alert("Speech Recognition is not supported in this browser.");
             return;
         }
-
         const recognition = new (window as any).webkitSpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = "en-US";
-
         recognition.onstart = () => setIsListening(true);
         recognition.onend = () => setIsListening(false);
-
         recognition.onresult = (event: any) => {
             let interimTranscript = "";
             let finalTranscript = "";
@@ -115,10 +208,8 @@ export const ChatComponent = () => {
             setTranscript(transcript + finalTranscript + interimTranscript);
             setInputText(finalTranscript + interimTranscript);
         };
-
         if (isListening) recognition.start();
         else recognition.stop();
-
         return () => recognition.stop();
     }, [isListening]);
 
@@ -128,21 +219,20 @@ export const ChatComponent = () => {
 
     const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
         e.preventDefault();
-        const pastedText = e.clipboardData.getData('text');
+        const pastedText = e.clipboardData.getData("text");
         if (pastedText) {
-            const blob = new Blob([pastedText], { type: 'text/plain' });
-            const filename = `pasted_text_${Date.now()}.txt`;
+            const { extension, mimeType } = detectLanguage(pastedText);
+            const blob = new Blob([pastedText], { type: mimeType });
+            const filename = `pasted_content_${Date.now()}.${extension}`;
             setAttachedFiles((prev) => [...prev, { blob, filename }]);
         }
     };
 
     const handleSendMessage = async () => {
         if (inputText.trim() === "" && attachedFiles.length === 0) return;
-
         const authDetails = JSON.parse(sessionStorage.getItem("authDetails") || "{}");
         const token = authDetails?.data?.token;
         setIsGenerating(true);
-
         const userMessage = {
             id: Math.floor(Math.random() * 10000000).toString(),
             message: inputText,
@@ -156,13 +246,11 @@ export const ChatComponent = () => {
         setAttachedFiles([]);
         setInputText("");
         setIsSending(true);
-
         try {
             const chatResponse = await sendChat(token, {
                 message: inputText,
                 conversation_id: selectedHistory?.id || "",
             });
-
             const agentMessage = {
                 id: chatResponse.data.data.assistant_response.id,
                 message: chatResponse.data.data.assistant_response.message,
@@ -171,10 +259,8 @@ export const ChatComponent = () => {
                 created_at: chatResponse.data.data.assistant_response.created_at,
                 updated_at: chatResponse.data.data.assistant_response.updated_at,
             };
-
             setMessages((prevMessages) => [...prevMessages, agentMessage]);
             setIsSending(false);
-
             if (!selectedHistory) {
                 setNewChat(agentMessage.conversation_id);
                 setSelectedHistory({
@@ -187,15 +273,8 @@ export const ChatComponent = () => {
         } catch (error) {
             toast({
                 variant: "destructive",
-                title: (
-                    <div className="flex items-start gap-2">
-                        <XCircle className="h-11 w-9 text-white" />
-                        <div className="flex flex-col">
-                            <span className="font-semibold text-base">Error</span>
-                            <span className="text-sm font-light">Failed to send message</span>
-                        </div>
-                    </div>
-                ) as unknown as string,
+                title: "Error",
+                description: "Failed to send message",
                 duration: 5000,
             });
             console.error(error);
@@ -208,15 +287,8 @@ export const ChatComponent = () => {
         navigator.clipboard.writeText(text).then(() => {
             toast({
                 variant: "success",
-                title: (
-                    <div className="flex items-start gap-2">
-                        <CheckCircle className="h-11 w-9 text-white" />
-                        <div className="flex flex-col">
-                            <span className="font-semibold text-base">Copied</span>
-                            <span className="text-sm font-light">Message copied to clipboard!</span>
-                        </div>
-                    </div>
-                ) as unknown as string,
+                title: "Copied",
+                description: "Message copied to clipboard!",
                 duration: 5000,
             });
         });
@@ -240,23 +312,11 @@ export const ChatComponent = () => {
         }
     };
 
-    const handleDownload = (blob: Blob, filename: string) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
-
     const loadListings = async (selectedHistory: any) => {
         try {
             const authDetails = JSON.parse(sessionStorage.getItem("authDetails") || "{}");
             const token = authDetails?.data?.token;
             if (!token) throw new Error("No auth token found");
-
             const fetchedListings = await getChatHistory(token, selectedHistory?.id);
             setMessages(fetchedListings?.data?.messages);
         } catch (error) {
@@ -311,7 +371,7 @@ export const ChatComponent = () => {
                                                     </div>
                                                 )}
                                                 <div
-                                                    className={`py-2 p-4 rounded-3xl max-w-[80%] ${message.message_author_type === "user" ? "bg-[#FAF6F6]" : "bg-zinc-100 ml-8"} group relative flex items-center gap-2`}
+                                                    className={`message-container py-2 p-4 rounded-3xl max-w-[80%] ${message.message_author_type === "user" ? "bg-[#FAF6F6]" : "bg-zinc-100 ml-8"} group relative flex items-center gap-2`}
                                                 >
                                                     <p className="text-sm flex-1">{message.message}</p>
                                                     {message.attachedFiles?.length > 0 && (
@@ -320,16 +380,13 @@ export const ChatComponent = () => {
                                                             <ul>
                                                                 {message.attachedFiles.map((file: { blob: Blob; filename: string }, index: number) => (
                                                                     <li key={index}>
-                                                                        <a
-                                                                            href="#"
-                                                                            onClick={(e) => {
-                                                                                e.preventDefault();
-                                                                                handleDownload(file.blob, file.filename);
-                                                                            }}
-                                                                            className="text-blue-500 hover:underline"
+                                                                        <button
+                                                                            onClick={() => handleFilePreview(file)}
+                                                                            className="text-blue-500 hover:underline cursor-pointer file-link"
+                                                                            style={{ pointerEvents: "auto", zIndex: 1000 }}
                                                                         >
                                                                             {file.filename}
-                                                                        </a>
+                                                                        </button>
                                                                     </li>
                                                                 ))}
                                                             </ul>
@@ -382,30 +439,31 @@ export const ChatComponent = () => {
                         <div
                             className={`${messages?.length === 0 ? "absolute top-1/2 mt-9 left-6 right-6 transform -translate-y-1/2" : "absolute bottom-6 left-6 right-6"} flex flex-col gap-2 bg-white p-4 rounded-lg shadow-md`}
                         >
-                            {/* Attached Files Section */}
                             {attachedFiles.length > 0 && (
                                 <div className="bg-gradient-to-r from-[#fef4e5] to-[#f9cda1] p-3 rounded-lg shadow-sm flex flex-wrap gap-2">
                                     {attachedFiles.map((file, index) => (
                                         <div
                                             key={index}
-                                            className="bg-white p-2 rounded-md border border-gray-200 flex flex-col relative max-w-[200px]"
+                                            className="bg-white p-4 rounded-md shadow-md relative max-w-[200px] fold-effect"
                                         >
-                                            <div className="flex items-center justify-between w-full">
-                                                <span className="text-blue-500 text-sm truncate">{file.filename}</span>
-                                                <button
-                                                    onClick={() => setAttachedFiles((prev) => prev.filter((_, i) => i !== index))}
-                                                    className="text-red-500 text-xs font-bold"
-                                                >
-                                                    X
-                                                </button>
-                                            </div>
-                                            <span className="text-black text-xs">Selected</span>
+                                            <span
+                                                className="text-blue-500 text-sm truncate block cursor-pointer"
+                                                onClick={() => handleFilePreview(file)}
+                                            >
+                                                {file.filename}
+                                            </span>
+                                            <span className="text-black text-xs block mt-1">Selected</span>
+                                            <button
+                                                onClick={() => setAttachedFiles((prev) => prev.filter((_, i) => i !== index))}
+                                                className="absolute top-1 p-1 right-1 text-black bg-white text-xs font-bold rounded-xl border-zinc-50 shadow-2xl"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
                             )}
 
-                            {/* Input Area with Suggestions */}
                             <div className="relative flex items-center gap-2">
                                 <button
                                     className="p-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 transition-colors shrink-0"
@@ -417,6 +475,7 @@ export const ChatComponent = () => {
                                         <CiMicrophoneOn className="w-6 h-6 text-zinc-700" />
                                     )}
                                 </button>
+
                                 <div className="flex-1 relative">
                                     <textarea
                                         readOnly={isGenerating}
@@ -437,13 +496,16 @@ export const ChatComponent = () => {
                                             if (e.key === "Enter" && !e.shiftKey && !isGenerating) {
                                                 e.preventDefault();
                                                 handleSendMessage();
-                                            } else if (e.key === "ArrowDown" && showSuggestions) {
-                                                e.preventDefault();
-                                                // Add keyboard navigation logic if needed
                                             }
                                         }}
                                         disabled={isGenerating}
                                     />
+                                    <button
+                                        className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1 rounded"
+                                        title="Switch to code editor"
+                                    >
+                                        <img src="/Upload.svg" className="w-6 h-6" alt="Send" />
+                                    </button>
                                     {showSuggestions && suggestions.length > 0 && (
                                         <div className="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto z-10">
                                             {suggestions.map((file) => (
@@ -475,6 +537,74 @@ export const ChatComponent = () => {
                     />
                 </div>
             </div>
+
+            {/* Updated Modal with CodeEditor */}
+            {isPreviewOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-1000">
+                    <div className="bg-gradient-to-r from-[#fef4e5] to-[#f9cda1] mt-10 rounded-2xl p-6 w-[50%] h-[85%] md:h-[90%] md:w-[45%]">
+                        <div className="flex justify-between items-center mb-4">
+                            <button
+                                onClick={() => {
+                                    handleSaveEdit();
+                                    setIsPreviewOpen(false);
+                                }}
+                                className="text-black mr-3"
+                            >
+                                <X className="h-7 w-7" />
+                            </button>
+                            <h2 className="text-lg font-bold flex-1">{selectedFile?.filename}</h2>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleSaveEdit}
+                                    className="p-2 text-black"
+                                    title="Save"
+                                >
+                                    <img src="/Upload.svg" className="w-[1.5rem] h-[1.5rem]" alt="Save" />
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(editedContent).then(() => {
+                                            toast({
+                                                variant: "success",
+                                                title: "Copied",
+                                                description: "Content copied to clipboard!",
+                                                duration: 3000,
+                                            });
+                                        });
+                                    }}
+                                    className="p-2 text-black"
+                                    title="Copy"
+                                >
+                                    <FiCopy className="h-[1.5rem] w-[1.5rem]" />
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const modal = document.querySelector(".modal-container");
+                                        if (modal) {
+                                            modal.classList.toggle("w-[50%]");
+                                            modal.classList.toggle("w-full");
+                                            modal.classList.toggle("h-[85%]");
+                                            modal.classList.toggle("h-full");
+                                        }
+                                    }}
+                                    className="p-2 text-black"
+                                    title="Expand"
+                                >
+                                    <img src="/Expand.svg" className="w-[1.2rem] h-[1.2rem]" alt="Expand" />
+                                </button>
+                            </div>
+                        </div>
+                        <CodeEditor
+                            value={editedContent}
+                            onChange={setEditedContent}
+                            language={selectedFile?.filename.split('.').pop() || 'markdown'}
+                            height="91%"
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
+
+export default ChatComponent;
