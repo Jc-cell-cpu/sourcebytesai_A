@@ -13,7 +13,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { PiRecordFill } from "react-icons/pi";
 import TypingIndicator from "./typing-indicator";
 import CodeEditor from "./code-editor";
-import hljs from "highlight.js"; // Import highlight.js
+import hljs from "highlight.js";
 
 const dummyFiles = [
     { id: 1, name: "Paracetamol.zip" },
@@ -29,7 +29,7 @@ const dummyFiles = [
 // Language detection using highlight.js
 const detectLanguage = (text: string): { extension: string; mimeType: string } => {
     const result = hljs.highlightAuto(text);
-    const lang = result.language || "markdown"; // Default to markdown if no language detected
+    const lang = result.language || "markdown";
 
     const languageMap: Record<string, { extension: string; mimeType: string }> = {
         javascript: { extension: "js", mimeType: "text/javascript" },
@@ -84,14 +84,10 @@ const detectLanguage = (text: string): { extension: string; mimeType: string } =
         fsharp: { extension: "fs", mimeType: "text/x-fsharp" },
         pascal: { extension: "pas", mimeType: "text/x-pascal" },
         julia: { extension: "jl", mimeType: "text/x-julia" },
-        wasm: { extension: "wasm", mimeType: "application/wasm" }
+        wasm: { extension: "wasm", mimeType: "application/wasm" },
     };
 
-
-
-    return (
-        languageMap[lang] || { extension: "md", mimeType: "text/markdown" } // Fallback to Markdown
-    );
+    return languageMap[lang] || { extension: "md", mimeType: "text/markdown" };
 };
 
 export const ChatComponent = () => {
@@ -113,6 +109,7 @@ export const ChatComponent = () => {
     const [suggestions, setSuggestions] = useState<typeof dummyFiles>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [searchTerm, setSearchTerm] = useState(""); // Track the search term after /
 
     // State for preview/edit modal
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -139,21 +136,45 @@ export const ChatComponent = () => {
         const value = e.target.value;
         setInputText(value);
         if (value.startsWith("/") && value.length > 1) {
-            const searchTerm = value.slice(1);
+            const term = value.slice(1);
+            setSearchTerm(term);
             setShowSuggestions(true);
-            debouncedSearch(searchTerm);
+            debouncedSearch(term);
         } else {
             setShowSuggestions(false);
             setSuggestions([]);
+            setSearchTerm("");
         }
     };
 
     const handleSuggestionSelect = (fileName: string) => {
         const blob = new Blob([`Content of ${fileName}`], { type: "text/plain" });
         setAttachedFiles((prev) => [...prev, { blob, filename: fileName }]);
-        setInputText("");
+        // Set input text with the search term in bold (using a visual cue like **)
+        const formattedText = fileName.replace(
+            new RegExp(`(${searchTerm})`, "i"),
+            `**$1**`
+        );
+        setInputText(formattedText);
         setShowSuggestions(false);
         setSuggestions([]);
+        setSearchTerm("");
+    };
+
+    const highlightMatch = (text: string, term: string) => {
+        if (!term) return text;
+        const index = text.toLowerCase().indexOf(term.toLowerCase());
+        if (index === -1) return text;
+        const before = text.slice(0, index);
+        const match = text.slice(index, index + term.length);
+        const after = text.slice(index + term.length);
+        return (
+            <>
+                <span className="text-gray-400">{before}</span>
+                <span className="text-black font-bold">{match}</span>
+                <span className="text-gray-400">{after}</span>
+            </>
+        );
     };
 
     const handleFilePreview = async (file: { blob: Blob; filename: string }) => {
@@ -175,7 +196,7 @@ export const ChatComponent = () => {
 
     const handleSaveEdit = () => {
         if (selectedFile) {
-            const { mimeType } = detectLanguage(editedContent); // Re-detect language on save
+            const { mimeType } = detectLanguage(editedContent);
             const newBlob = new Blob([editedContent], { type: mimeType });
             setAttachedFiles((prev) =>
                 prev.map((f) => (f.filename === selectedFile.filename ? { ...f, blob: newBlob } : f))
@@ -504,7 +525,7 @@ export const ChatComponent = () => {
                                         className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1 rounded"
                                         title="Switch to code editor"
                                     >
-                                        <img src="/Upload.svg" className="w-6 h-6" alt="Send" />
+                                        <img src="/Upload.svg" className="w-5 h-5" alt="Send" />
                                     </button>
                                     {showSuggestions && suggestions.length > 0 && (
                                         <div className="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto z-10">
@@ -514,7 +535,7 @@ export const ChatComponent = () => {
                                                     className="p-2 hover:bg-blue-100 cursor-pointer text-sm"
                                                     onClick={() => handleSuggestionSelect(file.name)}
                                                 >
-                                                    {file.name}
+                                                    {highlightMatch(file.name, searchTerm)}
                                                 </div>
                                             ))}
                                         </div>

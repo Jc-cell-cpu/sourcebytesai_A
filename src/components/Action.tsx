@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Download, Share, Eye, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { ConfirmationModal } from './confirmation-modal';
 import { useLanguage } from '@/context/LanguageContext';
 
