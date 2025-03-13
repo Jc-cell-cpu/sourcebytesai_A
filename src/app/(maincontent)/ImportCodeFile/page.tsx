@@ -14,10 +14,10 @@ import TurndownService from "turndown"
 interface FileData {
     id: string
     name: string
-    status: "Processing!" | "Ready to Sync" | "Not Accepted" | "Ready"
+    status: string
     lastModified: string
     size: string
-    code_file?: string
+    code_file: string
     isStaged?: boolean
     type?: string
 }
@@ -150,7 +150,7 @@ const CodeFileImportPage = () => {
         const syncForm = {
             codefile_id: fileToSync.id,
             codefile_path: fileToSync.code_file,
-            status: "Ready",
+            status: fileToSync.status,
         }
 
         const response = await syncCodeFile(token, tenant_id, syncForm)
@@ -169,11 +169,11 @@ const CodeFileImportPage = () => {
                     file.id === fileId ? { ...file, status: "Ready" } : file
                 )
             )
-            toast({
-                title: translations?.toast?.Success || "Success",
-                description: translations?.toast?.File || "File" + `${fileToSync.name}` + translations?.toast?.synced_successfully || "synced successfully",
-                variant: "success"
-            })
+            // toast({
+            //     title: translations?.toast?.Success || "Success",
+            //     description: translations?.toast?.File || "File" + `${fileToSync.name}` + translations?.toast?.synced_successfully || "synced successfully",
+            //     variant: "success"
+            // })
         } else {
             const statusCode = response.error.includes("status 400") ? 400 :
                 response.error.includes("status 500") ? 500 : null

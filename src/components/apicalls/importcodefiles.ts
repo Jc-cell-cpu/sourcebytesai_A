@@ -74,8 +74,19 @@ export async function syncCodeFile(
   tenant_id: string,
   form: SyncCodeFileForm
 ): Promise<any> {
-  // Existing implementation...
   const url = `${BASE_URL}/${tenant_id}/code_documentation/create/`;
+
+  // Print the request details
+  // console.log("SyncCodeFile Request:", {
+  //   url: url,
+  //   method: "POST",
+  //   headers: {
+  //     "Content-Type": "application/json",
+  //     Authorization: `Token ${token}`,
+  //   },
+  //   body: form,
+  // });
+
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -186,6 +197,7 @@ export async function downloadCodeFile(
 
     const text = await response.text();
     console.log("DownloadCodeFile Raw Response:", text);
+    console.log("UploadCodeFile Response Status:", response.status);
 
     let data;
     try {
