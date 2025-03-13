@@ -40,7 +40,19 @@ export async function createAdmin(
   token: string,
   formData: AdminFormData
 ): Promise<any> {
-  const url = `${BASE_URL}/auth/register/admin-user/"`;
+  const url = `${BASE_URL}/auth/register/admin-user/`;
+
+  // Print the request details
+  console.log("createAdmin Request:", {
+    url: url,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Token ${token}`,
+    },
+    body: formData,
+  });
+
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -52,6 +64,9 @@ export async function createAdmin(
     });
 
     const data = await response.json();
+    // const text = await response.text();
+    console.log("createAdmin Response Status:", data);
+    // console.log("createAdmin Raw Response:", text);
 
     if (!response.ok) {
       return {

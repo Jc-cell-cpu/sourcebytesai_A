@@ -1,27 +1,28 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getOrganisationList } from "@/components/apicalls/organisation"
-import { createAdmin } from "@/components/apicalls/admin-acount"
-import { Loader2 } from "lucide-react"
-import { useLanguage } from "@/context/LanguageContext"
+import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getOrganisationList } from "@/components/apicalls/organisation";
+import { createAdmin } from "@/components/apicalls/admin-acount";
+import { Loader2 } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
+import { useToast } from "@/hooks/use-toast";  // Import Shadcn UI toast hook
 
 interface AddAdminModalProps {
-    isOpen: boolean
-    onClose: () => void
+    isOpen: boolean;
+    onClose: () => void;
 }
 
 interface AdminFormData {
-    name: string
-    tenant_id: string
-    password: string
-    email: string
-    cpassword: string
+    name: string;
+    tenant_id: string;
+    password: string;
+    email: string;
+    cpassword: string;
 }
 
 const initialFormData: AdminFormData = {
@@ -29,64 +30,93 @@ const initialFormData: AdminFormData = {
     tenant_id: "",
     password: "",
     email: "",
-    cpassword: ""
-}
+    cpassword: "",
+};
 
 export function AddAdminModal({ isOpen, onClose }: AddAdminModalProps) {
-    const [formData, setFormData] = useState<AdminFormData>(initialFormData)
-    const [listings, setListings] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-    const [isLoading, setIsLoading] = useState(false) // Added loading state for form submission
+    const [formData, setFormData] = useState<AdminFormData>(initialFormData);
+    const [listings, setListings] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const { translations } = useLanguage();
+    const { toast } = useToast(); // Destructure toast from useToast hook
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setIsLoading(true) // Set loading state to true when submission starts
+        e.preventDefault();
+        setIsLoading(true);
         try {
-            const authDetails = JSON.parse(sessionStorage.getItem("authDetails") || "{}")
-            const token = authDetails?.data?.token
-            const { cpassword, ...formDataWithoutCpassword } = formData
-            const response = await createAdmin(token, formDataWithoutCpassword)
+            const authDetails = JSON.parse(sessionStorage.getItem("authDetails") || "{}");
+            const token = authDetails?.data?.token;
+            console.log("Form Data before submission:", formData);
+            const { cpassword, ...formDataWithoutCpassword } = formData;
+            const response = await createAdmin(token, formDataWithoutCpassword);
 
             if (response.success) {
-                setFormData(initialFormData)
-                onClose()
+                toast({
+                    title: "Success",
+                    description: "Admin created successfully!",
+                    variant: "success", // Success variant
+                });
+                setFormData(initialFormData);
+                onClose();
+            } else {
+                toast({
+                    title: "Error",
+                    description: response.error || "Failed to create admin",
+                    variant: "destructive", // Error variant
+                });
             }
         } catch (error) {
-            console.error("Error creating admin:", error)
+            console.error("Error creating admin:", error);
+            toast({
+                title: "Error",
+                description: "An unexpected error occurred",
+                variant: "destructive",
+            });
         } finally {
-            setIsLoading(false) // Reset loading state when done
+            setIsLoading(false);
         }
-    }
+    };
 
     const loadOrganisations = async () => {
-        setLoading(true)
+        setLoading(true);
         try {
-            const authDetails = JSON.parse(sessionStorage.getItem("authDetails") || "{}")
-            const token = authDetails?.data?.token
+            const authDetails = JSON.parse(sessionStorage.getItem("authDetails") || "{}");
+            const token = authDetails?.data?.token;
 
             if (!token) {
-                console.error("No auth token found")
-                return
+                toast({
+                    title: "Error",
+                    description: "No authentication token found",
+                    variant: "destructive",
+                });
+                console.error("No auth token found");
+                return;
             }
 
-            const fetchedListings = await getOrganisationList(token)
-            setListings(fetchedListings.data)
+            const fetchedListings = await getOrganisationList(token);
+            console.log("Fetched listings:", fetchedListings.data);
+            setListings(fetchedListings.data);
         } catch (error) {
-            console.error(error)
+            console.error(error);
+            toast({
+                title: "Error",
+                description: "Failed to load organizations",
+                variant: "destructive",
+            });
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     useEffect(() => {
-        loadOrganisations()
-    }, [])
+        loadOrganisations();
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target
-        setFormData((prev) => ({ ...prev, [name]: value }))
-    }
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -100,17 +130,32 @@ export function AddAdminModal({ isOpen, onClose }: AddAdminModalProps) {
                             <Label htmlFor="tenant_id">{translations?.super_admin?.select_organization} *</Label>
                             <Select
                                 value={formData.tenant_id}
-                                onValueChange={(value) => setFormData((prev) => ({ ...prev, tenant_id: value }))}
+                                onValueChange={(value) => {
+                                    console.log("Selected tenant_id:", value);
+                                    setFormData((prev) => ({ ...prev, tenant_id: value }));
+                                }}
+                                required
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder={translations?.super_admin?.select_organization} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {listings && listings.map((org: any) => (
-                                        <SelectItem key={org?.id} value={org.tenant_id}>{org.name}</SelectItem>
-                                    ))}
+                                    {loading ? (
+                                        <SelectItem value="loading" disabled>Loading...</SelectItem>
+                                    ) : listings && listings.length > 0 ? (
+                                        listings.map((org: any) => (
+                                            <SelectItem key={org?.id} value={org.tenant_id}>
+                                                {org.name}
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <SelectItem value="no-orgs" disabled>No organizations available</SelectItem>
+                                    )}
                                 </SelectContent>
                             </Select>
+                            {!formData.tenant_id && !loading && listings.length > 0 && (
+                                <p className="text-red-500 text-sm">Please select an organization</p>
+                            )}
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="name">{translations?.super_admin?.admin_name}*</Label>
@@ -160,7 +205,7 @@ export function AddAdminModal({ isOpen, onClose }: AddAdminModalProps) {
                     <Button
                         type="submit"
                         className="w-full bg-orange-500 hover:bg-orange-600"
-                        disabled={isLoading} // Disable button while loading
+                        disabled={isLoading}
                     >
                         {isLoading ? (
                             <>
@@ -174,5 +219,5 @@ export function AddAdminModal({ isOpen, onClose }: AddAdminModalProps) {
                 </form>
             </DialogContent>
         </Dialog>
-    )
+    );
 }
