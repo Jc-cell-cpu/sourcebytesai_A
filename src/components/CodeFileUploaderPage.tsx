@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 interface FileData {
     id: string
     name: string
-    status: "Processing!" | "Ready to Sync" | "Not Accepted" | "Ready"
+    status: string
     lastModified: string
     size: string
     code_file?: string
@@ -29,9 +29,9 @@ const CodeFileUploaderPage: React.FC<CodeFileUploaderPageProps> = ({ onUploadSuc
         ".md", ".jsx", ".tsx", ".vue", ".scss", ".sass", ".less",
         ".h", ".hpp", ".vb", ".pl", ".r", ".scala", ".dart", ".groovy",
         ".asm", ".mjs", ".coffee", ".erl", ".ex", ".lua", ".f90", ".for",
-        ".tcl", ".pas", ".ada", ".vhd", ".verilog", ".pug", ".haml"
+        ".tcl", ".pas", ".ada", ".vhd", ".verilog", ".pug", ".haml", ".zip"
     ];
-    const maxFileSize = 10 * 1024 * 1024 // 10MB for code files
+    const maxFileSize = 30 * 1024 * 1024 // 30MB for code files
     const { translations } = useLanguage()
     const { toast } = useToast()
 

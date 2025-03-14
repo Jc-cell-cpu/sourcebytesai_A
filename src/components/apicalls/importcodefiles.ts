@@ -239,3 +239,52 @@ export async function downloadCodeFile(
     };
   }
 }
+
+export async function deleteCodeFile(
+  token: string,
+  tenant_id: string,
+  fileId: string
+): Promise<any> {
+  const url = `${BASE_URL}/${tenant_id}/code_documentation/file/${fileId}/delete-code-file/`;
+  try {
+    const response = await fetch(url, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Token ${token}`,
+        "Content-Type": "application/json", // Optional, included for consistency
+      },
+      // No body needed for DELETE request as per the curl example
+    });
+
+    const text = await response.text();
+    // console.log("DeleteCodeFile Response Status:", response.status);
+    // console.log("DeleteCodeFile Raw Response:", text);
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (jsonError) {
+      return {
+        success: false,
+        error: `Invalid JSON response: ${text.substring(0, 100)}...`,
+      };
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error:
+          data.message ||
+          `Deleting code file failed with status ${response.status}`,
+      };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Error in deleteCodeFile:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Something went wrong",
+    };
+  }
+}
